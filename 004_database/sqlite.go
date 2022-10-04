@@ -8,12 +8,22 @@ import (
 	"path/filepath"
 )
 
+/*
+Pattern looks like:
+sql.Open -> db
+db.Query -> rows
+for rows.Next:
+	rows.Scan
+if rows.Err():
+	there may be an error in rows.Next
+rows.Close
+*/
 func main() {
 	dbPath := "todo.sqlite"
 	if home, err := os.UserHomeDir(); err == nil {
 		dbPath = filepath.Join(home, "/tmp/todo.sqlite")
 	}
-	fmt.Println("todo database path:", dbPath)
+	fmt.Println("database path:", dbPath)
 
 	// step 1: connect db
 	connString := fmt.Sprintf("file:%s?cache=shared", dbPath)
@@ -24,6 +34,7 @@ func main() {
 	db.SetMaxOpenConns(1)
 	defer db.Close()
 
+	db.Ping()
 	// we got *sql.DB
 	// step 2: query
 	rows, err := db.Query("select id, name, done from todos")
@@ -47,6 +58,10 @@ func main() {
 		}
 
 		fmt.Printf("	*%+v\n", m)
+	}
+	if rows.Err() != nil {
+		// TODO: what should we do?
+		fmt.Println(err.Error())
 	}
 	rows.Close()
 }
